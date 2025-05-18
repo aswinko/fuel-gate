@@ -1,44 +1,91 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/app/actions/auth-actions";
 
-// This is a mock API for vehicle verification
-// In a real implementation, you would connect to a vehicle database
 export async function POST(request: Request) {
   try {
-    const { registrationNumber } = await request.json()
+    const formData = await request.formData();
+    const registrationNumber = formData.get("registrationNumber")?.toString().trim().replace(/\s+/g, "");
+    const imageFile = formData.get("image") as File;
+    const user = await getCurrentUser();
 
-    if (!registrationNumber) {
-      return NextResponse.json({ error: "No registration number provided" }, { status: 400 })
+    if (!registrationNumber || !imageFile || !user?.user_id) {
+      return NextResponse.json(
+        { error: "Missing registration number or image or user id" },
+        { status: 400 }
+      );
     }
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const supabase = await createClient();
 
-    // Randomly determine if the vehicle is valid (manufactured after 2015)
-    const isValid = Math.random() > 0.3
-    const currentYear = new Date().getFullYear()
-    const year = isValid
-      ? 2015 + Math.floor(Math.random() * (currentYear - 2015 + 1))
-      : 2010 + Math.floor(Math.random() * 5)
+    // Upload image to Supabase Storage
+    const fileExt = imageFile.name.split(".").pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const fileBuffer = Buffer.from(await imageFile.arrayBuffer());
 
-    const makes = ["Maruti Suzuki", "Hyundai", "Tata", "Mahindra", "Honda", "Toyota"]
-    const models = ["Swift", "i20", "Nexon", "XUV300", "City", "Innova"]
-    const colors = ["White", "Silver", "Black", "Red", "Blue", "Grey"]
-    const fuelTypes = ["Petrol", "Diesel", "CNG", "Electric"]
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("vehicle-log")
+      .upload(fileName, fileBuffer, {
+        contentType: imageFile.type,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      return NextResponse.json({ error: "Image upload failed" }, { status: 500 });
+    }
+
+    const { data: imageUrlData } = supabase.storage
+      .from("vehicle-log")
+      .getPublicUrl(fileName);
+
+    const imageUrl = imageUrlData.publicUrl;
+
+    // Fetch vehicle details
+    const { data: vehicleData, error: vehicleError } = await supabase
+      .from("vehicles")
+      .select("*")
+      .eq("registration_number", registrationNumber)
+      .single();
+
+      const status = vehicleData ? "approved" : "rejected";
+    // Insert log
+    const { error: logError } = await supabase.from("verification_logs").insert([
+      {
+        registration_number: registrationNumber,
+        image_url: imageUrl,
+        vehicle_id: vehicleData?.id || null,
+        user_id: user.id ?? null,
+        status,
+      },
+    ]);
+
+    if (logError) {
+      console.error("Log error:", logError);
+      return NextResponse.json({ error: "Log creation failed" }, { status: 500 });
+    }
+
+    if (vehicleError || !vehicleData) {
+      return NextResponse.json(
+        { isValid: false, error: "Vehicle not found" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
-      isValid,
+      isValid: true,
       vehicleDetails: {
-        registrationNumber,
-        make: makes[Math.floor(Math.random() * makes.length)],
-        model: models[Math.floor(Math.random() * models.length)],
-        year,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        fuelType: fuelTypes[Math.floor(Math.random() * fuelTypes.length)],
-        owner: "John Doe",
+        registrationNumber: vehicleData.registration_number,
+        make: vehicleData.make_model?.split(" ")?.[0] || "",
+        model: vehicleData.make_model?.split(" ")?.[1] || "",
+        year: vehicleData.manufacturing_year,
+        color: vehicleData.color,
+        fuelType: vehicleData.fuel_type,
+        owner: vehicleData.registered_owner,
       },
-    })
-  } catch (error) {
-    console.error("Vehicle Verification Error:", error)
-    return NextResponse.json({ error: "Failed to verify vehicle" }, { status: 500 })
+    });
+  } catch (err) {
+    console.error("Error verifying vehicle:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

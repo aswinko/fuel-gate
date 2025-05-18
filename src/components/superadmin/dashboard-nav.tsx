@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Car, FuelIcon, Home, Package, ShoppingBasket, ShoppingCart, Users } from "lucide-react"
+import { Car, FuelIcon, Home, Logs, Package, ShoppingBasket, ShoppingCart, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const adminNavItems = [
@@ -12,9 +12,14 @@ const adminNavItems = [
     icon: Home,
   },
   {
-    title: "pumps",
+    title: "Pumps",
     href: "/dashboard/pumps",
     icon: FuelIcon,
+  },
+    {
+    title: "Verification Logs",
+    href: "/dashboard/verification-logs",
+    icon: Logs,
   },
 ]
 

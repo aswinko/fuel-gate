@@ -71,8 +71,6 @@ export default function VerifyPage() {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [rawOcrText, setRawOcrText] = useState<string>("");
 
-
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     if (e.target.files && e.target.files[0]) {
@@ -226,6 +224,7 @@ export default function VerifyPage() {
       // Format the extracted text as a license plate
       const plateText = formatAsLicensePlate(data.text);
       setExtractedText(plateText);
+      console.log("Extracted Text:", plateText);
 
       setOcrStatus("Text extraction complete");
       setOcrProgress(100);
@@ -267,39 +266,43 @@ export default function VerifyPage() {
   };
 
   const verifyVehicle = async () => {
-    if (!extractedText) return;
+  if (!extractedText || !imageFile) {
+    setError("Missing extracted text or image file.");
+    return;
+  }
 
-    setIsVerifying(true);
-    setError(null);
+  setIsVerifying(true);
+  setError(null);
 
-    try {
-      // Call the vehicle verification API
-      const response = await fetch("/api/verify-vehicle", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ registrationNumber: extractedText }),
-      });
+  try {
+    const formData = new FormData();
+    formData.append("registrationNumber", extractedText);
+    formData.append("image", imageFile); // Append the actual File object
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to verify vehicle");
-      }
+    const response = await fetch("/api/verify-vehicle", {
+      method: "POST",
+      body: formData, // No headers!
+    });
 
-      const data = await response.json();
-      setVerificationResult(data);
-    } catch (err) {
-      console.error("Verification Error:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to verify vehicle. Please try again."
-      );
-    } finally {
-      setIsVerifying(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to verify vehicle");
     }
-  };
+
+    const data = await response.json();
+    setVerificationResult(data);
+  } catch (err) {
+    console.error("Verification Error:", err);
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Failed to verify vehicle. Please try again."
+    );
+  } finally {
+    setIsVerifying(false);
+  }
+};
+
 
   const resetProcess = () => {
     setImage(null);
@@ -374,7 +377,7 @@ export default function VerifyPage() {
                             ref={imageRef}
                             src={image || "/placeholder.svg"}
                             alt="Number plate"
-                            className="w-full object-cover max-h-[300px]"
+                            className="w-full object-contain max-h-[300px]"
                           />
 
                           {/* Overlay for detected words */}

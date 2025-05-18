@@ -26,8 +26,8 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-white/80 backdrop-blur-md shadow-sm" : "bg-transparent"
+      className={`sticky top-0 z-50 transition-all duration-300 bg-white/80 ${
+        scrolled ? " backdrop-blur-md shadow-sm" : "bg-transparent"
       }`}
     >
       <div className="mx-auto container flex h-20 items-center justify-between py-4">
