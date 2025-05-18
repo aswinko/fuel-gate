@@ -28,4 +28,15 @@ export async function addVehicle(formData: FormData) {
 
   return { success: true, data }
 }
-2
+
+
+export async function getAllVehicles() {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('vehicles').select('*')
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  return { success: true, data }
+}
