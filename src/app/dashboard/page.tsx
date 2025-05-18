@@ -1,7 +1,7 @@
-import { redirect } from "next/navigation"
-import { getUserRole } from "../actions/auth-actions"
-import { createClient } from "@/lib/supabase/server"
-import DashboardPage from "./DashboardClient"
+import { redirect } from "next/navigation";
+import { getUserRole } from "../actions/auth-actions";
+import { createClient } from "@/lib/supabase/server";
+import DashboardPage from "./DashboardClient";
 
 export default async function page() {
   // This is a demo dashboard that shows different content based on user role
@@ -12,21 +12,13 @@ export default async function page() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data?.user) {
-    redirect("/");
+    redirect("/login");
   }
 
-    // 🔹 Redirect if the user is not a farmer
-    if (userRole !== "superadmin" && userRole != "admin") {
-      redirect("/"); // 🔹 Redirect to unauthorized page
-    }
+  // 🔹 Redirect if the user is not a admin or superadmin
+  if (userRole !== "superadmin" && userRole != "admin") {
+    redirect("/"); // 🔹 Redirect to unauthorized page
+  }
 
-    // const deliveries = await getAllDeliveries();
-
-
-    // console.log(deliveries);
-    
-
-  return (
-    <DashboardPage />
-  )
+  return <DashboardPage />;
 }

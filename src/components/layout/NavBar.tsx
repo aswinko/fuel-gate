@@ -9,8 +9,6 @@ import LogoutBtn from "@/components/LogoutBtn";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/app/actions/auth-actions";
 
-
-
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState(null);
@@ -22,7 +20,6 @@ export default function Navbar() {
     };
     isUserLoggedIn();
   }, []);
-
 
   return (
     <header
@@ -85,7 +82,12 @@ export default function Navbar() {
           className="flex items-center gap-4"
         >
           {user ? (
-            <LogoutBtn />
+            <>
+              <Button className="border border-purple-600 transition-all" variant={"outline"}>
+                <Link href="/pump/dashboard">Dashboard</Link>
+              </Button>
+              <LogoutBtn />
+            </>
           ) : (
             <Button className="bg-purple-600 hover:bg-purple-700 shadow-lg hover:shadow-purple-200/50 transition-all">
               <Link href="/login">Log In</Link>

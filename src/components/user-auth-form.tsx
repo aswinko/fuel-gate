@@ -49,10 +49,10 @@ export function UserAuthForm() {
     if (data && typeof data === 'object' && 'role' in data) {
       if (data.role === "superadmin") {
         redirect("/dashboard");
-      } else if (data.role === "admin") {
+      } else if (data.role === "admin") { 
         redirect("/dashboard");
       } else if (data.role === "pump") {
-        redirect("/verify");
+        redirect("/pump/dashboard");
       } else {
         redirect("/dashboard");
       }
